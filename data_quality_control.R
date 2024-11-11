@@ -2,7 +2,7 @@
 # QUALITY CHECK                            #
 # ######################################## #
 
-# PACKAGES
+# # PACKAGES
 package_names <- c("e1071", "dplyr", "tidyr", "stringr", "magrittr", "ggplot2")
 
 # Check if required packages are installed
