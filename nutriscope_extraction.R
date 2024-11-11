@@ -219,7 +219,7 @@ observations_filtered <- observations[!(observations$O.code.coding.code %in% c("
 # append BMI to filtered original data
 observations_with_bmi <- rbind(observations_filtered, bmi_data)
 
-rm(merged_data,bmi_data,observations_filtered, heigth_data, weight_data,observations)
+rm(merged_data,bmi_data,observations_filtered, height_data, weight_data,observations)
 
 write.csv(observations_with_bmi, file="NutriScope_observations.csv", row.names=FALSE)
 
