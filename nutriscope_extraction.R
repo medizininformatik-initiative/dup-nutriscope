@@ -202,16 +202,23 @@ height_data$O.valueQuantity.value <- ifelse(
 # check weight is in kg too??? --> assuming all weight values are in kg
 
 # merge data by EID
-merged_data <- merge(height_data, weight_data, by = "EID", suffixes = c("_height", "_weight"))
+height_data <- height_data[, c("EID", "O.valueQuantity.value", "O.valueQuantity.unit")]
+weight_data <- weight_data[, c("EID", "O.valueQuantity.value", "O.valueQuantity.unit")]
+# rename columns temporarily (avoiding conflicts during the merge)
+colnames(height_data)[2:3] <- c("height_value", "height_unit")
+colnames(weight_data)[2:3] <- c("weight_value", "weight_unit")
+
+merged_data <- merge(height_data, weight_data, by = "EID")
 
 # calculate BMI
-merged_data$BMI <- merged_data$O.valueQuantity.value_weight / (merged_data$O.valueQuantity.value_height^2)
+merged_data$O.valueQuantity.value <- merged_data$weight_value / (merged_data$height_value^2)
 
 # append to original dataframe
 bmi_data <- merged_data[, c("EID", "BMI")]
 bmi_data$O.code.coding.code <- "BMI"
-bmi_data$O.valueQuantity.value <- bmi_data$BMI
 bmi_data$O.valueQuantity.unit <- "kg/m^2"
+
+# #  to do: not working yet
 bmi_data <- bmi_data[, names(observations)]  # same column structure as in original observations
 
 # remove original height and weight
