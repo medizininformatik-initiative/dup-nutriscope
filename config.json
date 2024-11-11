@@ -1,0 +1,5 @@
+{
+  "FHIR_SERVER": "https://your_fhir_server",
+  "FHIR_USERNAME": "your_username",
+  "FHIR_PASSWORD": "your_password"
+}
