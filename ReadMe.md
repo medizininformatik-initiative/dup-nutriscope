@@ -19,7 +19,7 @@ The R-script reads the resources encounter, patient, condition, observation, pro
 #### Please store the FHIR-server configuration information in the config.json file
 
 It initially filters completed inpatient cases from 2013-2023, then searches for the patient data for these and calculates the age in order to limit the cohort to adults (18+).
-The observation currently only looks for one code each for height, weight, albumin and phosphate. These will be adjusted again.
+The observation currently only looks for one code each for height, weight, albumin and phosphate. Height and weight are used to calculate the patient's bmi and then removed from the dataset.
 
 
 
