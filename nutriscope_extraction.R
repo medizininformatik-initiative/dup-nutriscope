@@ -218,8 +218,15 @@ bmi_data <- merged_data[, c("EID", "BMI")]
 bmi_data$O.code.coding.code <- "BMI"
 bmi_data$O.valueQuantity.unit <- "kg/m^2"
 
-# #  to do: not working yet
-bmi_data <- bmi_data[, names(observations)]  # same column structure as in original observations
+# same column structure as in original observations
+missing_cols <- setdiff(names(observations), names(bmi_data))
+# add missing columns to `bmi_data` --> set values to NA
+for (col in missing_cols) {
+  bmi_data[[col]] <- NA
+}
+
+# Reorder `bmi_data` to match the column order in `observations`
+bmi_data <- bmi_data[, names(observations)]
 
 # remove original height and weight
 observations_filtered <- observations[!(observations$O.code.coding.code %in% c("8302-2", "29463-7")), ]
