@@ -21,7 +21,7 @@ The R-script reads the resources encounter, patient, condition, observation, pro
 It initially filters completed inpatient cases from 2013-2023, then searches for the patient data for these and calculates the age in order to limit the cohort to adults (18+).
 The observation currently only looks for one code each for height, weight, albumin and phosphate. Height and weight are used to calculate the patient's bmi and then removed from the dataset.
 
-
+###### To do: redesign the dataset according to the template from diz leipzig
 
 
 ### Data quality control
