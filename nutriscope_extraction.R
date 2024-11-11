@@ -182,11 +182,49 @@ obs_table <- fhir_table_description(
 )
 
 observations <- fhir_crack(bundles=observation_bundles, design=obs_table, verbose=0)
-write.csv(observations, file="NutriScope_observations.csv", row.names=FALSE)
+#write.csv(observations, file="NutriScope_observations.csv", row.names=FALSE)
+
+#------------------------
+# # # calculate BMI 
+#------------------------
+
+# filter for records with height and weight by `O.code.coding.code`
+height_data <- observations[observations$O.code.coding.code == "8302-2", ]
+weight_data <- observations[observations$O.code.coding.code == "29463-7", ]
+
+# check height is in m; if in cm --> convert 
+height_data$O.valueQuantity.value <- ifelse(
+  height_data$O.valueQuantity.unit == "cm",
+  height_data$O.valueQuantity.value / 100,  # convert cm to m
+  height_data$O.valueQuantity.value         # or keep if already in m
+)
+
+# check weight is in kg too??? --> assuming all weight values are in kg
+
+# merge data by EID
+merged_data <- merge(height_data, weight_data, by = "EID", suffixes = c("_height", "_weight"))
+
+# calculate BMI
+merged_data$BMI <- merged_data$O.valueQuantity.value_weight / (merged_data$O.valueQuantity.value_height^2)
+
+# append to original dataframe
+bmi_data <- merged_data[, c("EID", "BMI")]
+bmi_data$O.code.coding.code <- "BMI"
+bmi_data$O.valueQuantity.value <- bmi_data$BMI
+bmi_data$O.valueQuantity.unit <- "kg/m^2"
+bmi_data <- bmi_data[, names(observations)]  # same column structure as in original observations
+
+# remove original height and weight
+observations_filtered <- observations[!(observations$O.code.coding.code %in% c("8302-2", "29463-7")), ]
+# append BMI to filtered original data
+observations_with_bmi <- rbind(observations_filtered, bmi_data)
+
+rm(merged_data,bmi_data,observations_filtered, heigth_data, weight_data,observations)
+
+write.csv(observations_with_bmi, file="NutriScope_observations.csv", row.names=FALSE)
 
 print("Observations done.")
 
-# # # TO DO calculate BMI 
 
 # # # Procedure
 
