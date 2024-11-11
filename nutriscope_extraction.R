@@ -209,6 +209,7 @@ colnames(height_data)[2:3] <- c("height_value", "height_unit")
 colnames(weight_data)[2:3] <- c("weight_value", "weight_unit")
 
 merged_data <- merge(height_data, weight_data, by = "EID")
+merged_data<-unique(merged_data)
 
 # calculate BMI
 merged_data$O.valueQuantity.value <- merged_data$weight_value / (merged_data$height_value^2)
