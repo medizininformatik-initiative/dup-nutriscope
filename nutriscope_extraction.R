@@ -6,7 +6,7 @@
 ################################################################################
 # install and load necessary packages
 
-package_names<-c("fhircrackr","dplyr","lubridate","jsonlite")      # askpass
+package_names<-c("fhircrackr","dplyr","lubridate","jsonlite")      
 # check if required packages are installed
 for (package_name in package_names) {
   if (!requireNamespace(package_names, quietly = TRUE)) {
