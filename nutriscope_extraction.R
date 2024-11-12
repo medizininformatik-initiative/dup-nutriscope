@@ -192,6 +192,17 @@ observations <- fhir_crack(bundles=observation_bundles, design=obs_table, verbos
 height_data <- observations[observations$O.code.coding.code == "8302-2", ]
 weight_data <- observations[observations$O.code.coding.code == "29463-7", ]
 
+# interim step: get latest height and weight (if multiple are available per EID)
+height_data <- height_data %>%
+  group_by(EID) %>%
+  filter(O.effectiveDateTime == max(as.Date(O.effectiveDateTime))) %>%
+  slice(1)
+
+weight_data <- weight_data %>%
+  group_by(EID) %>%
+  filter(O.effectiveDateTime == max(as.Date(O.effectiveDateTime))) %>%
+  slice(1)
+
 # check height is in m; if in cm --> convert 
 height_data$O.valueQuantity.value <- ifelse(
   height_data$O.valueQuantity.unit == "cm",
@@ -226,7 +237,7 @@ for (col in missing_cols) {
   bmi_data[[col]] <- NA
 }
 
-# Reorder `bmi_data` to match the column order in `observations`
+# reorder bmi_data to match the column order in observations
 bmi_data <- bmi_data[, names(observations)]
 
 # remove original height and weight
