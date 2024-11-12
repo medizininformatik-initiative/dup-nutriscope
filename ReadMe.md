@@ -1,6 +1,6 @@
 ### Objective
 
-The aim of this retrospective study is to analyze the prevalence and severity of disease-related
+The aim of this retrospective study is to analyze the prevalence and severity 
 of disease-related malnutrition in hospitalized patients in university hospitals, as this is associated with considerable clinical and economic consequences. 
 Medical documentation data recorded in various clinics will be used for this purpose.<br/> 
 The goal is to clarify <br/>
