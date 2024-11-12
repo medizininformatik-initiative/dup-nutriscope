@@ -12,7 +12,7 @@ and assign appropriate treatment strategies and outcomes.
 
 ### Extraction   (- construction site -)
 
-#### used files: NutriScope_extraction.R + config.json
+#### used files: nutriscope_extraction.R + config.json
 
 The R-script reads the resources encounter, patient, condition, observation, procedure of the fhir server.
 
