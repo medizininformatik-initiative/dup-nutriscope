@@ -40,8 +40,8 @@ request <- fhir_url(url = FHIR_SERVER,
                       "class"="http://terminology.hl7.org/CodeSystem/v3-ActCode|IMP", # inpatient class
                       "status"="finished",                                            # status 
                       #"type/coding/code"="https://www.medizininformatik-initiative.de/fhir/core/modul-fall/CodeSystem/Kontaktebene|einrichtungskontakt" # define type
-                      "date"="ge2013-01-01",                                           # start 
-                      "date"="le2023-09-30"                                            # end 2023
+                      "date"="ge2018-01-01",                                           # start 
+                      "date"="le2023-12-31"                                            # end 2023
                     )                  
 )
 encounter_bundles <- fhir_search(request = request, username=username, password=password, verbose = 0)
