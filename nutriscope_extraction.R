@@ -307,3 +307,37 @@ summary_list<-lapply(names(datasets), function(name) {
 # convert into a data frame and save
 summary_df <- do.call(rbind, lapply(summary_list, as.data.frame))
 write.csv(summary_df, file="NutriScope_overview-resources.csv")
+
+
+#----------------------------------------------------------------------------------------------------
+# create final dataset (following the example of DIZ leipzig)
+#----------------------------------------------------------------------------------------------------
+
+# patients
+
+df<-patients
+colnames(df)<-c("Patientennummer","Geschlecht","Alter bei Aufnahme")
+#----------------------------------------------------------------------------------------------------
+
+# add encounter
+encounters$Patientennummer<-gsub("\\Patient/","",encounters$PID)
+encounters$Fachabteilungsschluessel<-gsub("^[^_]*_([^_]*)_.*", "\\1", encounters$E.fallnummer)     # this is only existing if patient was moved in hospital  
+encounters$Fallnummer<-result <- gsub("_.*", "", encounters$E.fallnummer)
+# remove Fallnummern out of Fachabteilungsschluessel
+encounters[,"Fachabteilungsschluessel"] <- ifelse(
+  encounters[,"Fachabteilungsschluessel"] == encounters[,"Fallnummer"],
+  NA, 
+  encounters[,"Fachabteilungsschluessel"]
+)
+# calculate length of stay
+encounters$Aufnahmedatum <- ymd_hms(encounters$E.period.start)
+encounters$Entlassdatum <- ymd_hms(encounters$E.period.end)
+encounters$Verweildauer<- as.numeric(difftime(encounters$Entlassdatum, encounters$Aufnahmedatum, units = "days"))
+
+# time to next stay
+
+
+# merge patients + encounters
+df<-merge(df, encounters[,c("Patientennummer","EID","Fallnummer","Aufnahmedatum","Entlassdatum","Fachabteilungsschluessel","Verweildauer")], by="Patientennummer")
+
+#----------------------------------------------------------------------------------------------------
