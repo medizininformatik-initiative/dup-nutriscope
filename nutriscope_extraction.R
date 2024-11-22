@@ -320,9 +320,9 @@ colnames(df)<-c("Patientennummer","Geschlecht","Alter bei Aufnahme")
 #----------------------------------------------------------------------------------------------------
 
 # add encounter
-encounters$Patientennummer<-gsub("\\Patient/","",encounters$PID)
-encounters$Fachabteilungsschluessel<-gsub("^[^_]*_([^_]*)_.*", "\\1", encounters$E.fallnummer)     # this is only existing if patient was moved in hospital  
-encounters$Fallnummer<-result <- gsub("_.*", "", encounters$E.fallnummer)
+encounters$Patientennummer <- gsub("\\Patient/","",encounters$PID)
+encounters$Fachabteilungsschluessel <- gsub("^[^_]*_([^_]*)_.*", "\\1", encounters$E.fallnummer)     # this is only existing if patient was moved in hospital  
+encounters$Fallnummer <- gsub("_.*", "", encounters$E.fallnummer)
 # remove Fallnummern out of Fachabteilungsschluessel
 encounters[,"Fachabteilungsschluessel"] <- ifelse(
   encounters[,"Fachabteilungsschluessel"] == encounters[,"Fallnummer"],
@@ -334,10 +334,34 @@ encounters$Aufnahmedatum <- ymd_hms(encounters$E.period.start)
 encounters$Entlassdatum <- ymd_hms(encounters$E.period.end)
 encounters$Verweildauer<- as.numeric(difftime(encounters$Entlassdatum, encounters$Aufnahmedatum, units = "days"))
 
-# time to next stay
-# calculate time gap to next stay (!!! only if Fallnummer is different in these rows!!!)
+# # # calculate time gap to next stay 
+
 encounters <- encounters[order(encounters$Patientennummer, encounters$Aufnahmedatum), ]
 encounters$ZeitNaechsterAufenthalt <- NA
+
+# first idea: only if Fallnummer is different in these rows
+#for (unique_id in unique(encounters$Patientennummer)) {
+ # id_rows <- which(encounters$Patientennummer == unique_id)
+
+  # for (i in seq_along(id_rows)[-length(id_rows)]) {    # excluding last row, because there is no next "Aufnahmedatum"
+   # current_row <- id_rows[i]
+   # next_row <- id_rows[i + 1]
+# time gap between the current end and the next start
+    # if (encounters$Fallnummer[current_row] != encounters$Fallnummer[next_row]) {
+     #     encounters$ZeitNaechsterAufenthalt[id_rows[-length(id_rows)]] <- as.numeric(
+      #      difftime(
+       #     encounters$Aufnahmedatum[id_rows[-1]],
+        #    encounters$Entlassdatum[id_rows[-length(id_rows)]],
+         #   units = "days"
+       # )
+     # )
+   # }
+ # }
+#}
+
+# second idea: use partOf.ref --> needs to be NA       # better choice if the partOf.ref exists in FHIR
+
+encounters <- encounters[which(is.na(encounters$E.partOf.ref)),]
 
 for (unique_id in unique(encounters$Patientennummer)) {
   id_rows <- which(encounters$Patientennummer == unique_id)
@@ -346,7 +370,6 @@ for (unique_id in unique(encounters$Patientennummer)) {
     current_row <- id_rows[i]
     next_row <- id_rows[i + 1]
 # time gap between the current end and the next start
-     if (encounters$Fallnummer[current_row] != encounters$Fallnummer[next_row]) {
           encounters$ZeitNaechsterAufenthalt[id_rows[-length(id_rows)]] <- as.numeric(
             difftime(
             encounters$Aufnahmedatum[id_rows[-1]],
@@ -354,9 +377,9 @@ for (unique_id in unique(encounters$Patientennummer)) {
             units = "days"
         )
       )
-    }
   }
 }
+
 
 # merge patients + encounters
 
