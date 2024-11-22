@@ -335,9 +335,30 @@ encounters$Entlassdatum <- ymd_hms(encounters$E.period.end)
 encounters$Verweildauer<- as.numeric(difftime(encounters$Entlassdatum, encounters$Aufnahmedatum, units = "days"))
 
 # time to next stay
+# calculate time gap to next stay (!!! only if Fallnummer is different in these rows!!!)
+encounters <- encounters[order(encounters$Patientennummer, encounters$Aufnahmedatum), ]
+encounters$ZeitNaechsterAufenthalt <- NA
 
+for (unique_id in unique(encounters$Patientennummer)) {
+  id_rows <- which(encounters$Patientennummer == unique_id)
+
+   for (i in seq_along(id_rows)[-length(id_rows)]) {    # excluding last row, because there is no next "Aufnahmedatum"
+    current_row <- id_rows[i]
+    next_row <- id_rows[i + 1]
+# time gap between the current end and the next start
+     if (encounters$Fallnummer[current_row] != encounters$Fallnummer[next_row]) {
+          encounters$ZeitNaechsterAufenthalt[id_rows[-length(id_rows)]] <- as.numeric(
+            difftime(
+            encounters$Aufnahmedatum[id_rows[-1]],
+            encounters$Entlassdatum[id_rows[-length(id_rows)]],
+            units = "days"
+        )
+      )
+    }
+  }
+}
 
 # merge patients + encounters
-df<-merge(df, encounters[,c("Patientennummer","EID","Fallnummer","Aufnahmedatum","Entlassdatum","Fachabteilungsschluessel","Verweildauer")], by="Patientennummer")
 
+df<-merge(df, encounters[,c("Patientennummer","EID","Fallnummer","Aufnahmedatum","Entlassdatum","Fachabteilungsschluessel","Verweildauer","ZeitNaechsterAufenthalt")], by="Patientennummer")
 #----------------------------------------------------------------------------------------------------
