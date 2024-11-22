@@ -77,14 +77,34 @@ print("Encounter done.")
 patient_ids <- unique(encounters$PID)  
 patient_ids2 <- gsub("Patient/", "", patient_ids)
 patient_id_string <- paste(patient_ids, collapse = ",")
-patient_id_string2 <- paste(patient_ids2, collapse = ",")
+patient_id_string2 <- paste(patient_ids2, collapse = ",")      # used for patient resource only
+
+# error-message: too long format for request, try to split into individual IDs again
+patient_id_string <- strsplit(patient_id_string, ",")[[1]]
+patient_id_string2 <- strsplit(patient_id_string2, ",")[[1]]
+
+
+# need to split ids, otherwise it's too long for the request
+split_ids <- function(ids, chunk_size) {
+  split(ids, ceiling(seq_along(ids) / chunk_size))
+}
+chunk_size <- 50
+patient_id_chunks <- split_ids(patient_id_string, chunk_size)
+patient_id_chunks2 <- split_ids(patient_id_string2, chunk_size)
+
 
 # # # Patient
-request <- fhir_url(url = FHIR_SERVER, 
+patient_results <- list()
+for (i in seq_along(patient_id_chunks2)) {
+  chunk <- paste(patient_id_chunks2[[i]], collapse = ",")
+  request <- fhir_url(url = FHIR_SERVER, 
                     resource = "Patient",
-                    parameters = c(paste0("_id=", patient_id_string2))     # extracted IDs only
+                    parameters = c(paste0("_id=", chunk))     # extracted IDs only
 )
-patient_bundles <- fhir_search(request = request, username=username, password=password, verbose = 0)      
+patient_results[[i]] <- fhir_search(request = request, verbose = 0)      
+}
+patient_bundles <- append(patient_bundles, patient_results)
+patient_bundles <- do.call(c, patient_bundles)
 
 patient_table <- fhir_table_description(
   resource = "Patient",
@@ -121,7 +141,7 @@ write.csv(patients, file="NutriScope_patients.csv", row.names=FALSE)
 rm(temp)
 print("Patients done.")
 
-# # # Condition
+# # # Condition      # TO DO: split patient-ids, adapt request
 request <- fhir_url(url = FHIR_SERVER, 
                     resource = "Condition",
                     parameters = c(paste0("subject=", patient_id_string)))
@@ -151,7 +171,7 @@ write.csv(conditions, file="NutriScope_conditions.csv", row.names=FALSE)
 
 print("Conditions done.")
 
-# # # Observation
+# # # Observation      # TO DO: split patient-ids, adapt request
 request <- fhir_url(url = FHIR_SERVER, 
                     resource = "Observation",  
                     parameters = c(
@@ -252,7 +272,7 @@ write.csv(observations_with_bmi, file="NutriScope_observations.csv", row.names=F
 print("Observations done.")
 
 
-# # # Procedure
+# # # Procedure      # TO DO: split patient-ids, adapt request
 
 request <- fhir_url(url = FHIR_SERVER, 
                     resource = "Procedure",
