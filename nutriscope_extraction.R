@@ -107,7 +107,7 @@ temp<-encounters %>%                      # look for date of first occurrence of
   arrange(E.period.start) %>%
   slice(1L) %>% select (PID, E.period.start)
 
-temp$E_period.start<-gsub("T..*","",temp$E.period.start)
+temp$E.period.start<-gsub("T..*","",temp$E.period.start)
 temp$PID<-gsub("\\Patient/","",temp$PID)
 patients<-merge(patients, temp, by="PID")
 patients$birthDate <- ifelse(nchar(patients$birthDate) == 4, paste0(patients$birthDate, "-07-01"), patients$birthDate)  # add mm-dd to birthDate if missing
