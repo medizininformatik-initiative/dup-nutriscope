@@ -149,7 +149,7 @@ for (i in seq_along(patient_id_chunks)) {
   chunk <- paste(patient_id_chunks[[i]], collapse = ",")
   request <- fhir_url(url = FHIR_SERVER, 
                     resource = "Condition",
-                    parameters = c(paste0("subject=", chunk))
+                    parameters = c("subject=", chunk)
                      )
   condition_bundles[[i]] <- fhir_search(request = request , username=username, password=password, verbose = 0) 
 }
