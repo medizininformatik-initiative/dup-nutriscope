@@ -94,17 +94,16 @@ patient_id_chunks2 <- split_ids(patient_id_string2, chunk_size)
 
 
 # # # Patient
-patient_results <- list()
+patient_bundles <- list()
 for (i in seq_along(patient_id_chunks2)) {
   chunk <- paste(patient_id_chunks2[[i]], collapse = ",")
   request <- fhir_url(url = FHIR_SERVER, 
                     resource = "Patient",
                     parameters = c(paste0("_id=", chunk))     # extracted IDs only
 )
-patient_results[[i]] <- fhir_search(request = request, verbose = 0)      
+patient_bundles[[i]] <- fhir_search(request = request, verbose = 0)      
 }
-patient_bundles <- append(patient_bundles, patient_results)
-patient_bundles <- do.call(c, patient_bundles)
+patient_bundles <- do.call(c, patient_results)
 
 patient_table <- fhir_table_description(
   resource = "Patient",
@@ -142,10 +141,17 @@ rm(temp)
 print("Patients done.")
 
 # # # Condition      # TO DO: split patient-ids, adapt request
-request <- fhir_url(url = FHIR_SERVER, 
+condition_bundles <- list()
+for (i in seq_along(patient_id_chunks)) {
+  chunk <- paste(patient_id_chunks[[i]], collapse = ",")
+  request <- fhir_url(url = FHIR_SERVER, 
                     resource = "Condition",
-                    parameters = c(paste0("subject=", patient_id_string)))
-condition_bundles <- fhir_search(request = request , username=username, password=password, verbose = 0) 
+                    parameters = c(paste0("subject=", chunk))
+                     )
+  condition_bundles[[i]] <- fhir_search(request = request , username=username, password=password, verbose = 0) 
+}
+
+condition_bundles <- do.call(c, condition_bundles)
 
 condition_table <- fhir_table_description(
   resource = "Condition",
@@ -167,6 +173,11 @@ condition_table <- fhir_table_description(
 )
 
 conditions <- fhir_crack(bundles=condition_bundles, design=condition_table, verbose=0)
+
+# keep existing EIDs from encounters only
+EIDs <- paste0("Encounter/",encounters$EID)
+conditions <- conditions[which(conditions$EID %in% EIDs),]
+
 write.csv(conditions, file="NutriScope_conditions.csv", row.names=FALSE)
 
 print("Conditions done.")
