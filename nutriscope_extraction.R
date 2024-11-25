@@ -92,8 +92,9 @@ chunk_size <- 50
 patient_id_chunks <- split_ids(patient_id_string, chunk_size)
 patient_id_chunks2 <- split_ids(patient_id_string2, chunk_size)
 
-
-# # # Patient
+# # # # # # # # # # # # 
+# # # Patient     # # #
+# # # # # # # # # # # # 
 patient_bundles <- list()
 for (i in seq_along(patient_id_chunks2)) {
   chunk <- paste(patient_id_chunks2[[i]], collapse = ",")
@@ -101,9 +102,9 @@ for (i in seq_along(patient_id_chunks2)) {
                     resource = "Patient",
                     parameters = c(paste0("_id=", chunk))     # extracted IDs only
 )
-patient_bundles[[i]] <- fhir_search(request = request, verbose = 0)      
+patient_bundles[[i]] <- fhir_search(request = request, username=username, password=password, verbose = 0)      
 }
-patient_bundles <- do.call(c, patient_results)
+patient_bundles <- do.call(c, patient_bundles)
 
 patient_table <- fhir_table_description(
   resource = "Patient",
@@ -140,7 +141,9 @@ write.csv(patients, file="NutriScope_patients.csv", row.names=FALSE)
 rm(temp)
 print("Patients done.")
 
-# # # Condition      # TO DO: split patient-ids, adapt request
+# # # # # # # # # # # # 
+# # # Condition   # # # 
+# # # # # # # # # # # # 
 condition_bundles <- list()
 for (i in seq_along(patient_id_chunks)) {
   chunk <- paste(patient_id_chunks[[i]], collapse = ",")
@@ -182,15 +185,21 @@ write.csv(conditions, file="NutriScope_conditions.csv", row.names=FALSE)
 
 print("Conditions done.")
 
-# # # Observation      # TO DO: split patient-ids, adapt request
-request <- fhir_url(url = FHIR_SERVER, 
-                    resource = "Observation",  
-                    parameters = c(
-                      "subject"= patient_id_string,
-                      "code" ="http://loinc.org|8302-2", "http://loinc.org|29463-7", "http://loinc.org|1751-7", "http://loinc.org|14879-1")       # add loincs here
-                    )
 
-observation_bundles <- fhir_search(request = request, username=username, password=password, verbose = 0)
+# # # # # # # # # # # # 
+# # # Observation      # TO DO: split patient-ids, adapt request
+# # # # # # # # # # # # 
+observation_bundles <- list()
+for (i in seq_along(patient_id_chunks)) {
+  chunk <- paste(patient_id_chunks[[i]], collapse = ",")
+  request <- fhir_url(url = FHIR_SERVER, 
+                    resource = "Observation",  
+                    parameters = c("subject"= chunk,
+                                  "code" ="http://loinc.org|8302-2, http://loinc.org|29463-7, http://loinc.org|1751-7, http://loinc.org|14879-1")       # add loincs here
+                    )
+observation_bundles[[i]] <- fhir_search(request = request, username=username, password=password, verbose = 0)
+}
+observation_bundles <- do.call(c, observation_bundles)
 
 obs_table <- fhir_table_description(
   resource = "Observation",
@@ -212,8 +221,12 @@ obs_table <- fhir_table_description(
   keep_attr = FALSE
 )
 
-observations <- fhir_crack(bundles=observation_bundles, design=obs_table, verbose=0)
-#write.csv(observations, file="NutriScope_observations.csv", row.names=FALSE)
+observations <- fhir_crack(bundles=observation_bundles, design=obs_table, verbose=0)# keep existing EIDs from encounters only
+
+# keep existing EIDs from encounters only
+observations <- observations[which(observations$EID %in% EIDs),]
+
+write.csv(observations, file="NutriScope_observations.csv", row.names=FALSE)
 
 #------------------------
 # # # calculate BMI 
@@ -283,8 +296,9 @@ write.csv(observations_with_bmi, file="NutriScope_observations.csv", row.names=F
 print("Observations done.")
 
 
+# # # # # # # # # # # # 
 # # # Procedure      # TO DO: split patient-ids, adapt request
-
+# # # # # # # # # # # # 
 request <- fhir_url(url = FHIR_SERVER, 
                     resource = "Procedure",
                     parameters = c(
