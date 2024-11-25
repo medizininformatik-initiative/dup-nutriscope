@@ -299,12 +299,17 @@ print("Observations done.")
 # # # # # # # # # # # # 
 # # # Procedure      # TO DO: split patient-ids, adapt request
 # # # # # # # # # # # # 
-request <- fhir_url(url = FHIR_SERVER, 
+procedure_bundles <- list()
+for (i in seq_along(patient_id_chunks)) {
+  chunk <- paste(patient_id_chunks[[i]], collapse = ",")
+  request <- fhir_url(url = FHIR_SERVER, 
                     resource = "Procedure",
                     parameters = c(
-                      "subject"= patient_id_string)
-)
-procedure_bundles <- fhir_search(request = request, username=username, password=password, verbose = 0)
+                      "subject"= chunk)
+  )
+  procedure_bundles[[i]] <- fhir_search(request = request, username=username, password=password, verbose = 0)
+}
+procedure_bundles <- do.call(c, procedure_bundles)
 
 proc_table <- fhir_table_description(
   resource = "Procedure",
@@ -326,6 +331,10 @@ proc_table <- fhir_table_description(
 )
 
 procedures <- fhir_crack(bundles=procedure_bundles, design=proc_table, verbose=0)
+
+# keep existing EIDs from encounters only
+procedures <- procedures[which(procedures$EID %in% EIDs),]
+
 write.csv(procedures,file="NutriScope_procedures.csv", row.names=FALSE)
 
 print("Procedures done.")
