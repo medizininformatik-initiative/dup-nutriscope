@@ -439,3 +439,36 @@ for (unique_id in unique(encounters$Patientennummer)) {
 
 df<-merge(df, encounters[,c("Patientennummer","EID","Fallnummer","Aufnahmedatum","Entlassdatum","Fachabteilungsschluessel","Verweildauer","ZeitNaechsterAufenthalt")], by="Patientennummer")
 #----------------------------------------------------------------------------------------------------
+
+# rename some columns + removal prefix in "Patientennummer" + "EID"
+
+names(conditions)[names(conditions) == "PID"] <- "Patientennummer"
+names(conditions)[names(conditions) == "C.code.coding.version"] <- "ICD-Version"
+conditions$Patientennummer <- gsub("\\Patient/","",conditions$Patientennummer)
+conditions$EID <- gsub("\\Encounter/","",conditions$EID)
+
+# assign to main and secondary diagnosis
+conditions <- conditions %>%
+  mutate(
+    Hauptdiagnose = ifelse(C.category.coding.code == "CC", C.code.coding.code, NA),   
+    Nebendiagnose = ifelse(C.category.coding.code == "CM", C.code.coding.code, NA) 
+  )
+
+# merge to previous df (patients+encounters)
+df<-merge(df, conditions[,c("Patientennummer","EID","Hauptdiagnose","Nebendiagnose","ICD-Version")], by=c("Patientennummer","EID"))
+
+#----------------------------------------------------------------------------------------------------
+
+# add procedures (code+date)
+names(procedures)[names(procedures) == "PID"] <- "Patientennummer"
+names(procedures)[names(procedures) == "Pro.code.coding.code"] <- "OPS-Kode"
+names(procedures)[names(procedures) == "Pro.performed.DateTime"] <- "Prozeduren-Datum"
+procedures$Patientennummer <- gsub("\\Patient/","", procedures$Patientennummer)
+procedures$EID <- gsub("\\Encounter/","", procedures$EID)
+
+# merge to previous df (patients+encounters+conditions)
+df<-merge(df, procedures[,c("Patientennummer","EID","OPS-Kode","Prozeduren-Datum")], by=c("Patientennummer","EID"))
+
+#----------------------------------------------------------------------------------------------------
+
+# add observations
