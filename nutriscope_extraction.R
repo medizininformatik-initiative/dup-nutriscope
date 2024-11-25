@@ -437,7 +437,7 @@ for (unique_id in unique(encounters$Patientennummer)) {
 
 # merge patients + encounters
 
-df<-merge(df, encounters[,c("Patientennummer","EID","Fallnummer","Aufnahmedatum","Entlassdatum","Fachabteilungsschluessel","Verweildauer","ZeitNaechsterAufenthalt")], by="Patientennummer")
+df<-merge(df, encounters[,c("Patientennummer","EID","Fallnummer","Aufnahmedatum","Entlassdatum","Fachabteilungsschluessel","Verweildauer","ZeitNaechsterAufenthalt")], by="Patientennummer",all.x=TRUE)
 #----------------------------------------------------------------------------------------------------
 
 # rename some columns + removal prefix in "Patientennummer" + "EID"
@@ -455,7 +455,7 @@ conditions <- conditions %>%
   )
 
 # merge to previous df (patients+encounters)
-df<-merge(df, conditions[,c("Patientennummer","EID","Hauptdiagnose","Nebendiagnose","ICD-Version")], by=c("Patientennummer","EID"))
+df<-merge(df, conditions[,c("Patientennummer","EID","Hauptdiagnose","Nebendiagnose","ICD-Version")], by=c("Patientennummer","EID"),all.x=TRUE)
 
 #----------------------------------------------------------------------------------------------------
 
@@ -467,8 +467,31 @@ procedures$Patientennummer <- gsub("\\Patient/","", procedures$Patientennummer)
 procedures$EID <- gsub("\\Encounter/","", procedures$EID)
 
 # merge to previous df (patients+encounters+conditions)
-df<-merge(df, procedures[,c("Patientennummer","EID","OPS-Kode","Prozeduren-Datum")], by=c("Patientennummer","EID"))
+df<-merge(df, procedures[,c("Patientennummer","EID","OPS-Kode","Prozeduren-Datum")], by=c("Patientennummer","EID"),all.x=TRUE)
 
 #----------------------------------------------------------------------------------------------------
 
 # add observations
+names(observations)[names(observations) == "PID"] <- "Patientennummer"
+names(observations)[names(observations) == "O.effectiveDateTime"] <- "O.DateTime"
+observations$Patientennummer <- gsub("\\Patient/","", observations$Patientennummer)
+observations$EID <- gsub("\\Encounter/","", observations$EID)
+
+observations <- observations %>%
+  mutate(
+    BMI = ifelse(O.code.coding.code == "BMI", O.valueQuantity.value, NA),   
+    Albumin = ifelse(O.code.coding.code == "1751-7", O.valueQuantity.value, NA),    
+    Phosphat = ifelse(O.code.coding.code == "14879-1", O.valueQuantity.value, NA)
+  )
+
+# merge to previous df (patients+encounters+conditions+procedures)
+df<-merge(df, observations[,c("Patientennummer","EID","BMI","Albumin","Phosphat","O.DateTime")], by=c("Patientennummer","EID"), all.x=TRUE)
+
+#----------------------------------------------------------------------------------------------------
+# # # save final dataset
+write.csv(df,file="NutriScope_data.csv", row.names=FALSE,quote=FALSE)
+
+
+#----------------------------------------------------------------------------------------------------
+# # # remove the extracted ones
+file.remove("NutriScope_encounters.csv","NutriScope_patients.csv","NutriScope_conditions.csv","NutriScope_observations.csv","NutriScope_procedures.csv")
