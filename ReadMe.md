@@ -39,12 +39,13 @@ After all resources from the FHIR have been read out separately, the creation of
 | ICD-Version | C.code.coding.version (Condition)|
 | OPS-Kode | Pro.code.coding.code (Procedure)|
 | Prozeduren-Datum | Pro.performed.DateTime (Procedure)|
-| BMI | O.valueQuantity.value (claculated) (Observaton)|
-| Albumin | O.valueQuantity.value (LOINC 1751-7) (Observaton)|
-| Phospat | O.valueQuantity.value (LOINC 14879-1) (Observaton)|
-| O.DateTime | O.effectiveDateTime (Observaton) |
+| BMI | O.valueQuantity.value (claculated) (Observation)|
+| Albumin | O.valueQuantity.value (LOINC 1751-7) (Observation)|
+| Phospat | O.valueQuantity.value (LOINC 14879-1) (Observation)|
+| O.DateTime | O.effectiveDateTime (Observation) |
 
 
+The original files are deleted at the end of the script.
 
 
 ### Data quality control
