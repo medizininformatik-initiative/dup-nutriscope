@@ -21,7 +21,30 @@ The R-script reads the resources encounter, patient, condition, observation, pro
 It initially filters completed inpatient cases from 2018-2023, then searches for the patient data for these and calculates the age in order to limit the cohort to adults (18+).
 The observation currently only looks for one code each for height, weight, albumin and phosphate. Height and weight are used to calculate the patient's bmi and then removed from the dataset.
 
-#### To do: redesign the dataset according to the template from diz leipzig
+After all resources from the FHIR have been read out separately, the creation of the final data set begins, which contains the following columns:
+
+| Variable  | Origin (Resource)  | 
+|---|---|
+| Patientennummer  | PID (Patient)  | 
+| Geschlecht  | gender (Patient)  |
+|  Alter | age (Patien/Encounter)  | 
+| Fallnummer | E.fallnummer (Encounter) |
+| Aufnahmedatum | E.period.start (Encounter)  |
+| Entlassdatum | E.period.end (Encounter) |
+| Fachabteilungsschluessel | E.fallnummer: if Fallnummer_FAB_Bewegungsnummer (Encounter)|
+| Verweildauer | E.period.end - E.period.start (Encounter)|
+| ZeitNaechsterAufenthalt | E.period.end → next E.period.start (Encounter)|
+| Hauptdiagnose | C.code.coding.code & C.category.coding.code (==”CC”) (Condition)|
+| Nebendiagnose | C.code.coding.code & C.category.coding.code (==”CM”) (Condition)|
+| ICD-Version | C.code.coding.version (Condition)|
+| OPS-Kode | Pro.code.coding.code (Procedure)|
+| Prozeduren-Datum | Pro.performed.DateTime (Procedure)|
+| BMI | O.valueQuantity.value (claculated) (Observaton)|
+| Albumin | O.valueQuantity.value (LOINC 1751-7) (Observaton)|
+| Phospat | O.valueQuantity.value (LOINC 14879-1) (Observaton)|
+| O.DateTime | O.effectiveDateTime (Observaton) |
+
+
 
 
 ### Data quality control
