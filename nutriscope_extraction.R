@@ -489,6 +489,7 @@ df<-merge(df, observations[,c("Patientennummer","EID","BMI","Albumin","Phosphat"
 
 #----------------------------------------------------------------------------------------------------
 # # # save final dataset
+df<-unique(df)
 write.csv(df,file="NutriScope_data.csv", row.names=FALSE,quote=FALSE)
 
 
