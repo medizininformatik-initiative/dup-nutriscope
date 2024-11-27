@@ -25,24 +25,24 @@ After all resources from the FHIR have been read out separately, the creation of
 
 | Variable  | Origin (Resource)  | 
 |---|---|
-| Patientennummer  | PID (Patient)  | 
+| Patientennummer  | id (Patient)  | 
 | Geschlecht  | gender (Patient)  |
-|  Alter | age (Patien/Encounter)  | 
-| Fallnummer | E.fallnummer (Encounter) |
-| Aufnahmedatum | E.period.start (Encounter)  |
-| Entlassdatum | E.period.end (Encounter) |
-| Fachabteilungsschluessel | E.fallnummer: if Fallnummer_FAB_Bewegungsnummer (Encounter)|
-| Verweildauer | E.period.end - E.period.start (Encounter)|
-| ZeitNaechsterAufenthalt | E.period.end → next E.period.start (Encounter)|
-| Hauptdiagnose | C.code.coding.code & C.category.coding.code (==”CC”) (Condition)|
-| Nebendiagnose | C.code.coding.code & C.category.coding.code (==”CM”) (Condition)|
-| ICD-Version | C.code.coding.version (Condition)|
-| OPS-Kode | Pro.code.coding.code (Procedure)|
-| Prozeduren-Datum | Pro.performed.DateTime (Procedure)|
-| BMI | O.valueQuantity.value (calculated) (Observation)|
-| Albumin | O.valueQuantity.value (LOINC 1751-7) (Observation)|
-| Phospat | O.valueQuantity.value (LOINC 14879-1) (Observation)|
-| O.DateTime | O.effectiveDateTime (Observation) |
+|  Alter | birthDate (Patient) & period/start (Encounter)  | 
+| Fallnummer | identifier/value (Encounter) |
+| Aufnahmedatum | period/start (Encounter)  |
+| Entlassdatum | period/end (Encounter) |
+| Fachabteilungsschluessel | identifier/value: if Fallnummer_FAB_Bewegungsnummer (Encounter)|
+| Verweildauer | period/end - period/start (Encounter)|
+| ZeitNaechsterAufenthalt | period/end → next period/start (Encounter)|
+| Hauptdiagnose | code/coding/code: if category/coding/code ==”CC" (Condition)|
+| Nebendiagnose | code/coding/code: if category/coding/code ==”CM” (Condition)|
+| ICD-Version | code/coding/version (Condition)|
+| OPS-Kode | code/coding/code (Procedure)|
+| Prozeduren-Datum | performedDateTime (Procedure)|
+| BMI | calculated from valueQuantity/value (Observation)|
+| Albumin | valueQuantity/value (LOINC 1751-7) (Observation)|
+| Phospat | valueQuantity/value (LOINC 14879-1) (Observation)|
+| O.DateTime | effectiveDateTime (Observation) |
 
 
 The original files are deleted at the end of the script.
