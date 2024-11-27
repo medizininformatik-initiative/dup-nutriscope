@@ -39,7 +39,7 @@ After all resources from the FHIR have been read out separately, the creation of
 | ICD-Version | C.code.coding.version (Condition)|
 | OPS-Kode | Pro.code.coding.code (Procedure)|
 | Prozeduren-Datum | Pro.performed.DateTime (Procedure)|
-| BMI | O.valueQuantity.value (claculated) (Observation)|
+| BMI | O.valueQuantity.value (calculated) (Observation)|
 | Albumin | O.valueQuantity.value (LOINC 1751-7) (Observation)|
 | Phospat | O.valueQuantity.value (LOINC 14879-1) (Observation)|
 | O.DateTime | O.effectiveDateTime (Observation) |
