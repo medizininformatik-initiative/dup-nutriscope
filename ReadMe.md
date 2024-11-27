@@ -10,7 +10,7 @@ b) which subtypes of malnutrition exist
 and assign appropriate treatment strategies and outcomes.
 
 
-### Extraction   (- construction site -)
+### Data Extraction 
 
 #### used files: nutriscope_extraction.R + config.json
 
