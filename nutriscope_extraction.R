@@ -33,7 +33,9 @@ password <- config$FHIR_PASSWORD
 #-------------------------------------------------------------------------------
 # Extract data from different resources
 
-# # # Encounter
+# # # # # # # # # # # # 
+# # # Encounter   # # #
+# # # # # # # # # # # #
 request <- fhir_url(url = FHIR_SERVER,
                     resource = "Encounter",
                     parameters = c(
@@ -46,6 +48,7 @@ request <- fhir_url(url = FHIR_SERVER,
 )
 encounter_bundles <- fhir_search(request = request, username=username, password=password, verbose = 0)
 
+# definition of table design
 enc_table <- fhir_table_description(
   resource = "Encounter",
   cols     = c(
@@ -84,7 +87,7 @@ patient_id_string <- strsplit(patient_id_string, ",")[[1]]
 patient_id_string2 <- strsplit(patient_id_string2, ",")[[1]]
 
 
-# need to split ids, otherwise it's too long for the request
+# need to split ids, otherwise it's too long for next requests
 split_ids <- function(ids, chunk_size) {
   split(ids, ceiling(seq_along(ids) / chunk_size))
 }
@@ -94,18 +97,20 @@ patient_id_chunks2 <- split_ids(patient_id_string2, chunk_size)
 
 # # # # # # # # # # # # 
 # # # Patient     # # #
-# # # # # # # # # # # # 
+# # # # # # # # # # # #
+
 patient_bundles <- list()
 for (i in seq_along(patient_id_chunks2)) {
   chunk <- paste(patient_id_chunks2[[i]], collapse = ",")
   request <- fhir_url(url = FHIR_SERVER, 
                     resource = "Patient",
-                    parameters = c(paste0("_id=", chunk))     # extracted IDs only
+                    parameters = c(paste0("_id=", chunk))     # in Ecounter extracted IDs only
 )
 patient_bundles[[i]] <- fhir_search(request = request, username=username, password=password, verbose = 0)      
 }
 patient_bundles <- do.call(c, patient_bundles)
 
+# definition of table design
 patient_table <- fhir_table_description(
   resource = "Patient",
   cols     = c(
@@ -144,6 +149,7 @@ print("Patients done.")
 # # # # # # # # # # # # 
 # # # Condition   # # # 
 # # # # # # # # # # # # 
+
 condition_bundles <- list()
 for (i in seq_along(patient_id_chunks)) {
   chunk <- paste(patient_id_chunks[[i]], collapse = ",")
@@ -156,6 +162,7 @@ for (i in seq_along(patient_id_chunks)) {
 
 condition_bundles <- do.call(c, condition_bundles)
 
+# definition of table design
 condition_table <- fhir_table_description(
   resource = "Condition",
   cols     = c(
@@ -187,8 +194,9 @@ print("Conditions done.")
 
 
 # # # # # # # # # # # # 
-# # # Observation      # TO DO: split patient-ids, adapt request
+# # # Observation     # 
 # # # # # # # # # # # # 
+
 observation_bundles <- list()
 for (i in seq_along(patient_id_chunks)) {
   chunk <- paste(patient_id_chunks[[i]], collapse = ",")
@@ -201,6 +209,7 @@ observation_bundles[[i]] <- fhir_search(request = request, username=username, pa
 }
 observation_bundles <- do.call(c, observation_bundles)
 
+# definition of table design
 obs_table <- fhir_table_description(
   resource = "Observation",
   cols     = c(
@@ -297,7 +306,7 @@ print("Observations done.")
 
 
 # # # # # # # # # # # # 
-# # # Procedure      # TO DO: split patient-ids, adapt request
+# # # Procedure       # 
 # # # # # # # # # # # # 
 procedure_bundles <- list()
 for (i in seq_along(patient_id_chunks)) {
@@ -311,6 +320,7 @@ for (i in seq_along(patient_id_chunks)) {
 }
 procedure_bundles <- do.call(c, procedure_bundles)
 
+# definition of table design
 proc_table <- fhir_table_description(
   resource = "Procedure",
   cols     = c(
@@ -339,7 +349,9 @@ write.csv(procedures,file="NutriScope_procedures.csv", row.names=FALSE)
 
 print("Procedures done.")
 
-# # interim step --> get results of dimensions
+
+# -----------------------------------------------------------------------------------------------------------
+# # # interim step --> get results of dimensions
 datasets<-list(enc=encounters, pat=patients, obs=observations, proc=procedures)
 
 summary_list<-lapply(names(datasets), function(name) {
@@ -370,19 +382,21 @@ write.csv(summary_df, file="NutriScope_overview-resources.csv")
 # patients
 
 df<-patients
+# set columnnames as given 
 colnames(df)<-c("Patientennummer","Geschlecht","Alter bei Aufnahme")
 #----------------------------------------------------------------------------------------------------
 
 # add encounter
 encounters$Patientennummer <- gsub("\\Patient/","",encounters$PID)
-encounters$Fachabteilungsschluessel <- gsub("^[^_]*_([^_]*)_.*", "\\1", encounters$E.fallnummer)     # this is only existing if patient was moved in hospital  
-encounters$Fallnummer <- gsub("_.*", "", encounters$E.fallnummer)
+encounters$Fachabteilungsschluessel <- gsub("^[^_]*_([^_]*)_.*", "\\1", encounters$E.fallnummer)     # extract "Fachabteilung":this is only existing if patient was moved in hospital  
+encounters$Fallnummer <- gsub("_.*", "", encounters$E.fallnummer)                                    # extract case id
 # remove Fallnummern out of Fachabteilungsschluessel
 encounters[,"Fachabteilungsschluessel"] <- ifelse(
   encounters[,"Fachabteilungsschluessel"] == encounters[,"Fallnummer"],
   NA, 
   encounters[,"Fachabteilungsschluessel"]
 )
+  
 # calculate length of stay
 encounters$Aufnahmedatum <- ymd_hms(encounters$E.period.start)
 encounters$Entlassdatum <- ymd_hms(encounters$E.period.end)
@@ -459,7 +473,7 @@ df<-merge(df, conditions[,c("Patientennummer","EID","Hauptdiagnose","Nebendiagno
 
 #----------------------------------------------------------------------------------------------------
 
-# add procedures (code+date)
+# add procedures (code+date), rename some columns
 names(procedures)[names(procedures) == "PID"] <- "Patientennummer"
 names(procedures)[names(procedures) == "Pro.code.coding.code"] <- "OPS-Kode"
 names(procedures)[names(procedures) == "Pro.performed.DateTime"] <- "Prozeduren-Datum"
@@ -494,5 +508,5 @@ write.csv(df,file="NutriScope_data.csv", row.names=FALSE,quote=FALSE)
 
 
 #----------------------------------------------------------------------------------------------------
-# # # remove the extracted ones
+# # # remove the initially extracted FHIR-files
 file.remove("NutriScope_encounters.csv","NutriScope_patients.csv","NutriScope_conditions.csv","NutriScope_observations.csv","NutriScope_procedures.csv")
