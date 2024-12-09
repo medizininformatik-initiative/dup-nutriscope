@@ -304,6 +304,7 @@ write.csv(observations_with_bmi, file="NutriScope_observations.csv", row.names=F
 
 print("Observations done.")
 
+observations<-observations_with_bmi
 
 # # # # # # # # # # # # 
 # # # Procedure       # 
