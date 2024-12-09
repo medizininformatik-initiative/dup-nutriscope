@@ -279,7 +279,7 @@ merged_data<-unique(merged_data)
 merged_data$O.valueQuantity.value <- merged_data$weight_value / (merged_data$height_value^2)
 
 # append to original dataframe
-bmi_data <- merged_data[, c("EID", "BMI")]
+bmi_data <- merged_data[, c("EID", "O.valueQuantity.value")]
 bmi_data$O.code.coding.code <- "BMI"
 bmi_data$O.valueQuantity.unit <- "kg/m^2"
 
