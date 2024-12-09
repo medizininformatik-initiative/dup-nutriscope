@@ -494,15 +494,19 @@ names(observations)[names(observations) == "O.effectiveDateTime"] <- "O.DateTime
 observations$Patientennummer <- gsub("\\Patient/","", observations$Patientennummer)
 observations$EID <- gsub("\\Encounter/","", observations$EID)
 
-observations <- observations %>%
-  mutate(
-    BMI = ifelse(O.code.coding.code == "BMI", O.valueQuantity.value, NA),   
-    Albumin = ifelse(O.code.coding.code == "1751-7", O.valueQuantity.value, NA),    
-    Phosphat = ifelse(O.code.coding.code == "14879-1", O.valueQuantity.value, NA)
-  )
-
+#observations <- observations %>%
+#  mutate(
+#    BMI = ifelse(O.code.coding.code == "BMI", O.valueQuantity.value, NA),   
+#    Albumin = ifelse(O.code.coding.code == "1751-7", O.valueQuantity.value, NA),    
+#    Phosphat = ifelse(O.code.coding.code == "14879-1", O.valueQuantity.value, NA)
+#  )
 # merge to previous df (patients+encounters+conditions+procedures)
-df<-merge(df, observations[,c("Patientennummer","EID","BMI","Albumin","Phosphat","O.DateTime")], by=c("Patientennummer","EID"), all.x=TRUE)
+#df<-merge(df, observations[,c("Patientennummer","EID","BMI","Albumin","Phosphat","O.DateTime")], by=c("Patientennummer","EID"), all.x=TRUE)
+
+# maybe not redesing dataframe, just keep O.code.coding.code
+df<-merge(df, observations[,c("Patientennummer","EID","O.code.coding.code","O.DateTime")], by=c("Patientennummer","EID"), all.x=TRUE)
+
+
 
 #----------------------------------------------------------------------------------------------------
 # # # save final dataset
