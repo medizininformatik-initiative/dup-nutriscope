@@ -351,28 +351,30 @@ print("Procedures done.")
 
 
 # -----------------------------------------------------------------------------------------------------------
-# # # interim step --> get results of dimensions
-datasets<-list(enc=encounters, pat=patients, obs=observations, proc=procedures)
+# # # interim step --> get results of dimensions (leave commented out, no test run)
+####################################################
+#datasets<-list(enc=encounters, pat=patients, obs=observations, proc=procedures)
 
-summary_list<-lapply(names(datasets), function(name) {
+#summary_list<-lapply(names(datasets), function(name) {
+
 # check dimension and unique patients
-  data <- datasets[[name]]
-  data_dim <- dim(data)
-  unique_ids <- length(unique(data[["PID"]]))
-  colnames <- colnames(data)
+#  data <- datasets[[name]]
+#  data_dim <- dim(data)
+#  unique_ids <- length(unique(data[["PID"]]))
+#  colnames <- colnames(data)
 
-  list(
-    dataset = name,
-    nrows = data_dim[1],
-    ncols = data_dim[2],
-    unique_PID = unique_ids,
-    cols = colnames
-  )
-})
+#  list(
+#    dataset = name,
+#    nrows = data_dim[1],
+#    ncols = data_dim[2],
+#    unique_PID = unique_ids,
+#    cols = colnames
+#  )
+#})
 
 # convert into a data frame and save
-summary_df <- do.call(rbind, lapply(summary_list, as.data.frame))
-write.csv(summary_df, file="NutriScope_overview-resources.csv")
+#summary_df <- do.call(rbind, lapply(summary_list, as.data.frame))
+#write.csv(summary_df, file="NutriScope_overview-resources.csv")
 
 
 #----------------------------------------------------------------------------------------------------
