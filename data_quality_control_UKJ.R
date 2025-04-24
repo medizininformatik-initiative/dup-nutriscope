@@ -3,7 +3,7 @@
 # ######################################## #
 
 # # PACKAGES
-package_names <- c("e1071", "dplyr", "tidyr", "stringr", "magrittr", "ggplot2")
+package_names <- c("e1071", "dplyr", "tidyr", "stringr", "magrittr", "ggplot2", "data.table")
 
 # Check if required packages are installed
 for (package_name in package_names) {
@@ -15,9 +15,19 @@ for (package_name in package_names) {
 
 # FUNCTIONS
 
+# Function to check if column is posixct
+
+looks_like_iso_datetime <- function(x) {
+  x_non_missing <- x[!is.na(x) & x != ""]
+  if (length(x_non_missing) < 1) return(FALSE)
+  test_values <- head(x_non_missing, 1)
+  parsed <- suppressWarnings(as.POSIXct(test_values, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+  all(!is.na(parsed))
+}
+
 # Function to calculate the range of values
 calculate_range <- function(column) {
-  if (is.numeric(column) || is.integer(column)) {
+  if (is.numeric(column) || is.integer(column) || is(column, "POSIXct")) {
     min_value <- min(column, na.rm = TRUE)
     max_value <- max(column, na.rm = TRUE)
     return(paste("Range:", min_value, "-", max_value))
@@ -26,21 +36,14 @@ calculate_range <- function(column) {
   }
 }
 
-# Function to check if all values in a column have the same data type
-check_same_datatype <- function(column) {
-  if (length(unique(sapply(column, class))) == 1) {
-    return("Yes")
-  } else {
-    return("No")
-  }
-}
-
 # Function to calculate statistical metrics
 calculate_mean <- function(column) {
-  if (is.numeric(column) || is.integer(column)) {
+  if (is.numeric(column) || is.integer(column)){
     return(mean(column, na.rm = TRUE))
+  } else if(is(column, "POSIXct")) {
+      return(as.character(mean(column, na.rm = TRUE)))
   } else {
-    return(NA)
+      return(NA)
   }
 }
 
@@ -69,18 +72,32 @@ calculate_skewness <- function(column) {
 }
 
 calculate_normality <- function(column) {
-  if (is.numeric(column) || is.integer(column)) {
+  if ((is.numeric(column) ||
+       is.integer(column)) & length(unique(column)) > 1) {
     non_na_values <- column[!is.na(column)]
-    sample_values <- if (length(non_na_values) > 5000) sample(non_na_values, 5000) else non_na_values
-    return(shapiro.test(sample_values)$p.value)
+    sample_values <- if (length(non_na_values) > 5000) {
+      sample(non_na_values, 5000)
+    } else {
+      non_na_values
+    }
+    if (length(unique(sample_values)) > 1) {
+      return(shapiro.test(sample_values)$p.value)
+    } else{
+      NA
+    }
   } else {
     return(NA)
   }
 }
 
 calculate_mode <- function(column) {
-  uniq_vals <- unique(column)
-  uniq_vals[which.max(tabulate(match(column, uniq_vals)))]
+  tab <- table(column)
+  if(length(tab)>0){
+    names(which.max(tab))
+  }else{
+    NA
+  }
+  
 }
 
 # Function to create  histogram for  "Alter" 
@@ -177,7 +194,7 @@ count_age_groups <- function(data, age_column, output_folder, file_name) {
   
   # Save the results as CSV
   age_group_file_name <- paste0(file_name, "_agegroupsFREQ.csv")
-  write.csv(age_grouped, file.path(output_folder, age_group_file_name), row.names = FALSE)
+  write.csv2(age_grouped, file.path(output_folder, age_group_file_name), row.names = FALSE)
 }
 
 
@@ -286,17 +303,35 @@ create_lab_histogram <- function(data, column_name, output_folder, file_name, ti
 
 
 ######################################  
-###### PROCESS CSV FILE ##############
+###### PROCESS CSV FILES ##############
 ######################################
+input_folder <- "NutriScope_extracted_data"
+output_folder <- "qualitycheck_results"
 
-process_csv_file <- function(file_path, output_folder) {
-  data <- read.csv(file_path, sep = ";", fileEncoding = "UTF-8")
-  file_name <- tools::file_path_sans_ext(basename(file_path))
+# Check if output folder exists, if not, create it
+if (!dir.exists(output_folder)) {
+  dir.create(output_folder)
+}
+
+####### Basic quality checks ##########
+
+files <- paste(input_folder, dir(input_folder), sep = "/")
+
+for(file in files){
+  data <- fread(file, keepLeadingZeros = T)
+  
+  #convert date columns
+  for (col in names(data)) {
+    if (is.character(data[[col]]) && looks_like_iso_datetime(data[[col]])) {
+      data[[col]] <- as.POSIXct(data[[col]], format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    }
+  }
+  
+  file_name <- tools::file_path_sans_ext(basename(file))
   
   # QC Results
   unique_counts <- sapply(data, function(x) length(unique(x)))
   range_values <- sapply(data, calculate_range)
-  all_same_datatype <- sapply(data, check_same_datatype)
   duplicates <- sapply(data, function(column) {
     any(duplicated(column))
   })
@@ -309,13 +344,12 @@ process_csv_file <- function(file_path, output_folder) {
   
   # Store results in a data frame
   results <- data.frame(
-    "dimension" = paste("Rows:", nrow(data), "Columns:", ncol(data)),
+    #"dimension" = paste("Rows:", nrow(data), "Columns:", ncol(data)),
     "column_name" = colnames(data),
-    "data_type" = sapply(data, class),
+    "data_type" = sapply(data, function(x)paste(class(x), collapse = ", ")),
     "missing_values" = colSums(is.na(data)),
     "unique_values" = unique_counts,
     "range_of_values" = range_values,
-    "all_same_data_type" = all_same_datatype,
     "Column_with_duplicates" = duplicates,
     "mean" = mean_values,
     "sd" = sd_values,
@@ -327,8 +361,10 @@ process_csv_file <- function(file_path, output_folder) {
   
   # Save results as CSV
   result_file_name <- paste0(file_name, "_QC_results.csv")
-  write.csv(results, file.path(output_folder, result_file_name), row.names = FALSE)
-  
+  write.csv2(results, file.path(output_folder, result_file_name), row.names = FALSE)
+
+
+###### Histograms #######  
   
   # Check if "Alter" is part of any column name
   age_columns <- grep("Alter", colnames(data), value = TRUE)
@@ -336,7 +372,7 @@ process_csv_file <- function(file_path, output_folder) {
   if (length(age_columns) > 0) {
     for (age_column in age_columns) {
       if (is.numeric(data[[age_column]]) || is.integer(data[[age_column]])) {
-        age_file_name <- tools::file_path_sans_ext(basename(file_path))
+        age_file_name <- tools::file_path_sans_ext(basename(file))
         create_age_histogram(data, age_column, output_folder, age_file_name)
       }
     }
@@ -358,7 +394,7 @@ process_csv_file <- function(file_path, output_folder) {
   if (length(adm_columns) > 0) {
     for (adm_column in adm_columns) {
       if (is.numeric(data[[adm_column]]) || is.integer(data[[adm_column]])) {
-        adm_file_name <- tools::file_path_sans_ext(basename(file_path))
+        adm_file_name <- tools::file_path_sans_ext(basename(file))
         create_adm_histogram(data, adm_column, output_folder, adm_file_name)
       }
     }
@@ -378,7 +414,7 @@ process_csv_file <- function(file_path, output_folder) {
   if (length(readm_columns) > 0) {
     for (readm_column in readm_columns) {
       if (is.numeric(data[[readm_column]]) || is.integer(data[[readm_column]])) {
-        readm_file_name <- tools::file_path_sans_ext(basename(file_path))
+        readm_file_name <- tools::file_path_sans_ext(basename(file))
         create_readm_histogram(data, readm_column, output_folder, readm_file_name)
       }
     }
@@ -401,44 +437,57 @@ process_csv_file <- function(file_path, output_folder) {
       as.data.frame()
     
     # Generate file name 
-    gender_file_name <- paste0(tools::file_path_sans_ext(basename(file_path)), "_genderFREQ.csv")
-    write.csv(gender_freq, file.path(output_folder, gender_file_name), row.names = FALSE)
+    gender_file_name <- paste0(tools::file_path_sans_ext(basename(file)), "_genderFREQ.csv")
+    write.csv2(gender_freq, file.path(output_folder, gender_file_name), row.names = FALSE)
   }
   
-  
-  # search for bmi columns
-  bmi_columns <- grep("BMI", colnames(data), value = TRUE)
-  
-  if (length(bmi_columns) > 0) {
-    for (bmi_column in bmi_columns) {
-      if (is.numeric(data[[bmi_column]]) || is.integer(data[[bmi_column]])) {
+  #For Observation data (BMI, Albumin, Phosphat)
+  if (any(grepl("O.valueQuantity.value", colnames(data)))) { 
+      if (is.numeric(data[["O.valueQuantity.value"]]) || is.integer(data[["O.valueQuantity.value"]])) {
         
-        # remove NAs
-        filtered_bmi_data <- data[!is.na(data[[bmi_column]]), ]
-        bmi_file_name <- tools::file_path_sans_ext(basename(file_path))
-        create_bmi_histogram(filtered_bmi_data, bmi_column, output_folder, bmi_file_name)
-        create_bmi_boxplot(filtered_bmi_data, bmi_column, output_folder, bmi_file_name)
+        ### BMI
+        # remove NAs and only keep BMI measurements
+        filtered_bmi_data <- data[!is.na(data$O.valueQuantity.value) & data$O.code.coding.code == "BMI", ]
+        bmi_file_name <- tools::file_path_sans_ext(basename(file))
+        if(nrow(filtered_bmi_data)>0){
+          create_bmi_histogram(filtered_bmi_data, "O.valueQuantity.value", output_folder, bmi_file_name)
+          create_bmi_boxplot(filtered_bmi_data, "O.valueQuantity.value", output_folder, bmi_file_name)
+        }
+
+        file_name <- tools::file_path_sans_ext(basename(file))
+        
+        ### Phosphat 14879-1
+        filtered_phosphat_data <- data[!is.na(data$O.valueQuantity.value) & data$O.code.coding.code == "14879-1", ]
+        if(nrow(filtered_phosphat_data)>0){
+          create_lab_histogram(filtered_phosphat_data, "O.valueQuantity.value", output_folder, file_name, "Phosphat")
+        }
+
+        ### Albumin 1751-7
+        filtered_Albumin_data <- data[!is.na(data$O.valueQuantity.value) & data$O.code.coding.code == "1751-7", ]
+        if(nrow(filtered_Albumin_data)>0){
+          create_lab_histogram(filtered_Albumin_data, "O.valueQuantity.value", output_folder, file_name, "Albumin")
+        }
+        
       } 
-    }
   }
   
   # Bewegungsart und typ
-  create_movement_frequency(data, output_folder)
+  #create_movement_frequency(data, output_folder)
   
   
   
-  OE_columns <- grep("Fachabteilungsschluessel", colnames(data), value = TRUE)
-  
-  if (length(OE_columns) > 0) {
-    for (OE_column in OE_columns) {
-      OE_freq <- data %>%
-        dplyr::count(!!sym(OE_column), name = "n") %>%
-        as.data.frame()
-      
-      OE_file_name <- paste0(tools::file_path_sans_ext(basename(file_path)), "_oeFREQ.csv")
-      write.csv(OE_freq, file.path(output_folder, OE_file_name), row.names = FALSE)
-    }
-  }
+  # OE_columns <- grep("Fachabteilungsschluessel", colnames(data), value = TRUE)
+  # 
+  # if (length(OE_columns) > 0) {
+  #   for (OE_column in OE_columns) {
+  #     OE_freq <- data %>%
+  #       dplyr::count(!!sym(OE_column), name = "n") %>%
+  #       as.data.frame()
+  #     
+  #     OE_file_name <- paste0(tools::file_path_sans_ext(basename(file_path)), "_oeFREQ.csv")
+  #     write.csv(OE_freq, file.path(output_folder, OE_file_name), row.names = FALSE)
+  #   }
+  # }
   
   OPS_columns <- grep("OPS", colnames(data), value = TRUE)
   
@@ -448,8 +497,8 @@ process_csv_file <- function(file_path, output_folder) {
         dplyr::count(!!sym(OPS_column), name = "n") %>%
         as.data.frame()
       
-      OPS_file_name <- paste0(tools::file_path_sans_ext(basename(file_path)), "_opsFREQ.csv")
-      write.csv(OPS_freq, file.path(output_folder, OPS_file_name), row.names = FALSE)
+      OPS_file_name <- paste0(tools::file_path_sans_ext(basename(file)), "_opsFREQ.csv")
+      write.csv2(OPS_freq, file.path(output_folder, OPS_file_name), row.names = FALSE)
     }
   }
   
@@ -463,33 +512,9 @@ process_csv_file <- function(file_path, output_folder) {
   }
   
   
-  # Search for Albumin and Phosphat columns
-  alb_columns <- grep("Albumin", colnames(data), value = TRUE)
-  phos_columns <- grep("Phosphat", colnames(data), value = TRUE)
-  
-  # Create histograms for Albumin
-  if (length(alb_columns) > 0) {
-    for (alb_column in alb_columns) {
-      if (is.numeric(data[[alb_column]]) || is.integer(data[[alb_column]])) {
-        file_name <- tools::file_path_sans_ext(basename(file_path))
-        create_lab_histogram(data, alb_column, output_folder, file_name, "Albumin")
-      }
-    }
-  }
-  
-  # Create histograms for Phosphat
-  if (length(phos_columns) > 0) {
-    for (phos_column in phos_columns) {
-      if (is.numeric(data[[phos_column]]) || is.integer(data[[phos_column]])) {
-        file_name <- tools::file_path_sans_ext(basename(file_path))
-        create_lab_histogram(data, phos_column, output_folder, file_name, "Phosphat")
-      }
-    }
-  } 
-  
-  
+
   # additional check for "condition" files
-  file_name <- tools::file_path_sans_ext(basename(file_path))
+  file_name <- tools::file_path_sans_ext(basename(file))
   
   # Check for "Hauptdiagnose" columns
   main_diag_columns <- grep("Hauptdiagnose", colnames(data), value = TRUE)
@@ -502,7 +527,7 @@ process_csv_file <- function(file_path, output_folder) {
       
       # Save as CSV
       freq_condition_file_name1 <- paste0(file_name, "_HauptDiagFREQ.csv")
-      write.csv(main_diag_freq, file.path(output_folder, freq_condition_file_name1), row.names = FALSE)
+      write.csv2(main_diag_freq, file.path(output_folder, freq_condition_file_name1), row.names = FALSE)
     }
   }
   
@@ -517,32 +542,28 @@ process_csv_file <- function(file_path, output_folder) {
       
       # Save as CSV
       freq_condition_file_name2 <- paste0(file_name, "_NebenDiagFREQ.csv")
-      write.csv(side_diag_freq, file.path(output_folder, freq_condition_file_name2), row.names = FALSE)
+      write.csv2(side_diag_freq, file.path(output_folder, freq_condition_file_name2), row.names = FALSE)
     }
   }
-}
 
+}
 
 # ######################################## #
 # IMPORT DATA AND CREATE OUTPUT FOLDER     #
 # ######################################## #
 
-# Set input and output paths
-input_path <- "path/to/your/folder"
-output_folder <- file.path(input_path, "qualitycheck_results")
-
-# Check if output folder exists, if not, create it
-if (!dir.exists(output_folder)) {
-  dir.create(output_folder)
-}
-
-# List all CSV files in the input folder
-csv_files <- list.files(input_path, pattern = ".csv", full.names = TRUE)
-
-# Process each CSV file and save results in the output folder
-for (file in csv_files) {
-  process_csv_file(file, output_folder)
-}
+# # Set input and output paths
+# input_path <- "NutriScope_extracted_data"
+# output_folder <- file.path("qualitycheck_results")
+# 
+# 
+# # List all CSV files in the input folder
+# csv_files <- list.files(input_path, pattern = ".csv", full.names = TRUE)
+# 
+# # Process each CSV file and save results in the output folder
+# for (file in csv_files) {
+#   process_csv_file(file, output_folder)
+# }
 
 # Clean up the environment
-rm(list = ls())
+#rm(list = ls())

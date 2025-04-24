@@ -2,5 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-*.json
 *.RData
+config.json
+Nutriscope_extracted_data/*
+qualitycheck_results/*
