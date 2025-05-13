@@ -22,7 +22,7 @@ The script starts by downloading all finished inpatient Encounters of type "einr
 
 The script saves a number of intermediate results as *Zwischenstandxx.RData* in the working directory to allow the user to restart the script at different stages if an error occurs at some point. These files can be deleted after the extraction has run sucessfully.
 
-Since in Jena there is only a limited amount of body height and weight measurements available on the server, the script also loads some tabular additional data from disc that have been extracted directly from the primary information system.
+Currently, the fhir server in Jena has not the complete set of height and weight measurements as requested. Therefore, the script was extended to load some additional tabular data from disk, extracted directly from the primary information system.
 
 The resources are preprocessed and tabularised, resulting in the following (intermediate) results. Please note that in contrast to the original scripts in the main branch, this branch does not create a single overall table with the information from all resource types as this would result in an extremly large and sparse table. Instead, variables are saved in several tables according to resource type.
 
